@@ -1,0 +1,68 @@
+---
+- name: Create a new Demo EC2 instance
+  hosts: localhost
+  gather_facts: False
+  vars:
+      region: us-east-1
+      hostpath: "/home/ec2-user/ansible/hosts"
+      instance_type: t2.micro
+      ami: ami-0dfcb1ef8550277af  # Ubuntu 20.04 LTS
+      keypair: assessment # pem file name
+      subnetid: subnet-08faf2b2a17ee8c94 #subnet-0e80c6bbb664c7138
+      mysql_root_password: "wordpress"
+      db_name: "wordpress"
+      db_user: "wordpress"
+      db_password: "wordpress"
+      wp_db_host: "localhost"
+      wp_db_prefix: "wp_"
+      wp_admin_user: "admin"
+      wp_admin_password: "admin"
+      wp_admin_email: "baldurinaveen1@gmail.com"
+  
+  tasks:
+
+    - name: Create an ec2 instance
+      ec2:
+         key_name: "{{ keypair }}"
+         group: default # security group name
+         instance_type: "{{ instance_type }}"
+         image: "{{ ami }}"
+         wait: true
+         region: "{{ region }}"
+         count: 1  # default
+         count_tag:
+            Name: Demo
+         instance_tags:
+            Name: Demo
+         vpc_subnet_id: "{{ subnetid }}"
+         aws_access_key: AKIA4HKOL2NNUEEWDY7P
+         aws_secret_key: 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
+         assign_public_ip: yes
+         user_data: |
+          #!/bin/bash
+          # Install necessary packages
+          yum update -y
+          yum install -y httpd mariadb mariadb-server php php-mysqlnd php-gd php-xml php-mbstring
+          # Start services
+          systemctl start httpd
+          systemctl enable httpd
+          systemctl start mariadb
+          systemctl enable mariadb
+          # Set up MySQL root password
+          mysqladmin -u root password "{{ mysql_root_password }}"
+          mysql -u root -p "{{ mysql_root_password }}" -e "CREATE DATABASE {{ db_user }}"
+          mysql -u root -p "{{ mysql_root_password }}" -e "GRANT ALL PRIVILEGES ON {{ db_user }}.* TO {{ db_user }}@localhost IDENTIFIED BY {{ db_password }}"
+      register: ec2
+    - name: Wait for EC2 instance to be ready
+      wait_for:
+        host: "{{ item.public_dns_name }}"
+        port: 22
+        delay: 10
+        timeout: 300
+      with_items: "{{ ec2.instances }}"
+
+    - name: execute shell
+      shell: |
+        echo "[locals]" >>/home/ec2-user/ansible/hosts
+        echo "localhost1 {{ item.public_dns_name }}" >>/home/ec2-user/ansible/hosts
+      with_items: "{{ ec2.instances }}"
