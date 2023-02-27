@@ -9,9 +9,7 @@ step 2 run the ansible playbook to uinstall the wordpress
 step 3 build the docker image
 step 4 run the docker image to start the step 1 and 2
 
-Note: high avalibility purpose we can able to use amazon kubernets or amazon container services
-
-	I'm not familer with those in AWS side.
+Note: high avalibility purpose we can able to use amazon kubernets or amazon container services, I'm not familer with those services in AWS side.
 	
 
 
